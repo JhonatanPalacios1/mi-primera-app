@@ -1,0 +1,362 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Secuencias Visuales ABA</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f1f5f9;
+  color: #263445;
+}
+
+header {
+  background: #315c75;
+  color: white;
+  padding: 22px;
+  text-align: center;
+}
+
+header h1 { margin: 0 0 8px; font-size: 25px; }
+header p { margin: 0; }
+
+main {
+  max-width: 1050px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.panel {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px #0000000d;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin: 12px 0 6px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+  background: white;
+}
+
+button {
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: bold;
+  margin: 10px 6px 0 0;
+}
+
+.primary { background: #315c75; color: white; }
+.secondary { background: #e2e8f0; color: #263445; }
+.danger { background: #fee2e2; color: #991b1b; }
+
+.actions { margin-top: 12px; }
+
+#sequence {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.sheet-title {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.sheet-title h2 { margin-bottom: 6px; }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.step-card {
+  border: 2px solid #d9e4eb;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  break-inside: avoid;
+  min-width: 0;
+}
+
+.step-number {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #315c75;
+  color: white;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.picture {
+  height: 105px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 58px;
+  margin: 5px 0;
+}
+
+.step-text {
+  font-size: 16px;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+footer {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 520px) {
+  .cards { grid-template-columns: 1fr; }
+}
+
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
+@media print {
+  body { background: white; }
+  header, .controls, footer { display: none !important; }
+  main { margin: 0; padding: 0; max-width: none; }
+  .panel { box-shadow: none; padding: 0; margin: 0; }
+  #sequence { padding: 0; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .step-card { border: 1.5px solid #777; padding: 8px; }
+  .picture { height: 90px; font-size: 48px; }
+  .step-text { font-size: 12pt; }
+  .step-number { background: white; color: black; border: 1px solid black; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>Generador de Secuencias Visuales</h1>
+  <p>Materiales educativos para actividades cotidianas</p>
+</header>
+
+<main>
+  <section class="panel controls">
+    <h2>1. Configura tu material</h2>
+
+    <label for="activity">Actividad</label>
+    <select id="activity">
+      <option value="hands">Lavarse las manos</option>
+      <option value="teeth">Cepillarse los dientes</option>
+      <option value="dress">Vestirse</option>
+      <option value="backpack">Preparar la mochila</option>
+      <option value="custom">Actividad personalizada</option>
+    </select>
+
+    <label for="title">Título del material</label>
+    <input id="title" value="Lavarse las manos">
+
+    <label for="steps">Pasos (escribe un paso por línea)</label>
+    <textarea id="steps" rows="8">Subir las mangas
+Abrir el caño
+Mojar las manos
+Aplicar jabón
+Frotar las manos
+Enjuagar las manos
+Cerrar el caño
+Secar las manos</textarea>
+
+    <p>La aplicación asigna símbolos orientativos según las palabras de cada paso. Puedes editarlos más adelante.</p>
+
+    <div class="actions">
+      <button class="primary" id="generate">Generar secuencia</button>
+      <button class="secondary" id="print">Imprimir en A4 / Guardar PDF</button>
+      <button class="secondary" id="reset">Restablecer actividad</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div id="sequence">
+      <div class="sheet-title">
+        <h2 id="previewTitle">Lavarse las manos</h2>
+        <p>Sigue los pasos en orden</p>
+      </div>
+      <div class="cards" id="cards"></div>
+    </div>
+  </section>
+</main>
+
+<footer>Material educativo editable. Revisar y adaptar cada secuencia a la persona.</footer>
+
+<script>
+const activities = {
+  hands: {
+    title: "Lavarse las manos",
+    steps: [
+      "Subir las mangas",
+      "Abrir el caño",
+      "Mojar las manos",
+      "Aplicar jabón",
+      "Frotar las manos",
+      "Enjuagar las manos",
+      "Cerrar el caño",
+      "Secar las manos"
+    ]
+  },
+  teeth: {
+    title: "Cepillarse los dientes",
+    steps: [
+      "Tomar el cepillo",
+      "Poner pasta dental",
+      "Mojar el cepillo",
+      "Cepillar los dientes de arriba",
+      "Cepillar los dientes de abajo",
+      "Cepillar las muelas",
+      "Enjuagar la boca",
+      "Lavar el cepillo y guardarlo"
+    ]
+  },
+  dress: {
+    title: "Vestirse",
+    steps: [
+      "Buscar la ropa",
+      "Tomar la ropa interior",
+      "Ponerse la ropa interior",
+      "Ponerse el polo",
+      "Ponerse el pantalón",
+      "Ponerse las medias",
+      "Ponerse los zapatos",
+      "Acomodar la ropa"
+    ]
+  },
+  backpack: {
+    title: "Preparar la mochila",
+    steps: [
+      "Buscar el horario",
+      "Revisar los cuadernos",
+      "Guardar los cuadernos",
+      "Guardar los libros",
+      "Guardar el estuche",
+      "Guardar la cartuchera",
+      "Cerrar la mochila",
+      "Colocar la mochila en su lugar"
+    ]
+  }
+};
+
+const symbols = [
+  { words: ["manga", "polo", "ropa", "vestir", "pantalón", "pantalon", "media", "zapato"], icon: "👕" },
+  { words: ["caño", "grifo", "abrir"], icon: "🚰" },
+  { words: ["mojar", "agua", "enjuagar", "lavar"], icon: "💧" },
+  { words: ["jabón", "jabon", "pasta dental"], icon: "🧼" },
+  { words: ["frotar", "cepillar"], icon: "🫧" },
+  { words: ["dientes", "cepillo", "boca", "muelas"], icon: "🪥" },
+  { words: ["secar", "toalla"], icon: "🧻" },
+  { words: ["cerrar"], icon: "✋" },
+  { words: ["tomar", "buscar"], icon: "🖐️" },
+  { words: ["horario", "revisar"], icon: "📋" },
+  { words: ["cuaderno", "libro"], icon: "📚" },
+  { words: ["estuche", "cartuchera"], icon: "✏️" },
+  { words: ["mochila", "guardar", "colocar"], icon: "🎒" },
+  { words: ["poner", "ponerse"], icon: "👚" }
+];
+
+function getIcon(step) {
+  const normalized = step.toLowerCase();
+  const match = symbols.find(item =>
+    item.words.some(word => normalized.includes(word))
+  );
+  return match ? match.icon : "🖼️";
+}
+
+const activitySelect = document.getElementById("activity");
+const titleInput = document.getElementById("title");
+const stepsInput = document.getElementById("steps");
+const cards = document.getElementById("cards");
+const previewTitle = document.getElementById("previewTitle");
+
+function render() {
+  const title = titleInput.value.trim() || "Secuencia visual";
+  const steps = stepsInput.value
+    .split("\n")
+    .map(step => step.trim())
+    .filter(step => step.length > 0);
+
+  previewTitle.textContent = title;
+  cards.replaceChildren();
+
+  steps.forEach((step, index) => {
+    const card = document.createElement("article");
+    card.className = "step-card";
+
+    const number = document.createElement("div");
+    number.className = "step-number";
+    number.textContent = index + 1;
+
+    const picture = document.createElement("div");
+    picture.className = "picture";
+    picture.setAttribute("aria-label", "Símbolo orientativo");
+    picture.textContent = getIcon(step);
+
+    const text = document.createElement("div");
+    text.className = "step-text";
+    text.textContent = step;
+
+    card.append(number, picture, text);
+    cards.appendChild(card);
+  });
+}
+
+activitySelect.addEventListener("change", () => {
+  const selected = activities[activitySelect.value];
+  if (selected) {
+    titleInput.value = selected.title;
+    stepsInput.value = selected.steps.join("\n");
+  } else {
+    titleInput.value = "";
+    stepsInput.value = "";
+  }
+  render();
+});
+
+document.getElementById("generate").addEventListener("click", render);
+
+document.getElementById("print").addEventListener("click", () => {
+  render();
+  window.print();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  activitySelect.value = "hands";
+  titleInput.value = activities.hands.title;
+  stepsInput.value = activities.hands.steps.join("\n");
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
+
