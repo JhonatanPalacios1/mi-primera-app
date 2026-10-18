@@ -1,0 +1,11 @@
+{
+  "name": "Primero–Luego | Suyay Perú",
+  "short_name": "Primero–Luego",
+  "description": "Tablero visual personalizable para Suyay Perú",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f4ff",
+  "theme_color": "#635bdb",
+  "icons": []
+}
